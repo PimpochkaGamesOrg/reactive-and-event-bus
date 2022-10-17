@@ -7,14 +7,15 @@ namespace ReactiveAndEventBus
     {
         private Subject<Unit> _subject;
 
+        private Subject<Unit> Instance => (_subject ?? (_subject = new Subject<Unit>()));
         public void Raise()
         {
-            _subject.OnNext(Unit.Default);
+            Instance.OnNext(Unit.Default);
         }
 
         public IDisposable Subscribe(IObserver<Unit> observer)
         {
-            return (_subject ?? (_subject = new Subject<Unit>())).Subscribe(observer);
+            return Instance.Subscribe(observer);
         }
     }
 }
