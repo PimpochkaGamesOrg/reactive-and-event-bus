@@ -1,11 +1,14 @@
 ﻿using UniRx;
 using System;
 
-public class ObservableEvent : IObservable<Unit>
+namespace ReactiveAndEventBus
 {
-    private Subject<Unit> _subject;
-    public IDisposable Subscribe(IObserver<Unit> observer)
+    public class ObservableEvent : IObservable<Unit>
     {
-        return (_subject ?? (_subject = new Subject<Unit>())).Subscribe(observer);
+        private Subject<Unit> _subject;
+        public IDisposable Subscribe(IObserver<Unit> observer)
+        {
+            return (_subject ?? (_subject = new Subject<Unit>())).Subscribe(observer);
+        }
     }
 }

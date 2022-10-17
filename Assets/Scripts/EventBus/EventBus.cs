@@ -3,76 +3,79 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class EventBus
+namespace ReactiveAndEventBus
 {
-    private static Dictionary<Type, List<IGlobalSubscriber>> _subscribers = new();
-
-    private static Dictionary<Type, List<Type>> _cachedSubscriberTypes = new();
-
-    public static void Subscribe(IGlobalSubscriber subscriber)
+    public static class EventBus
     {
-        var subscriberTypes = GetSubscribersTypes(subscriber);
-        foreach (Type t in subscriberTypes)
-        {
-            if (!_subscribers.ContainsKey(t))
-            {
-                _subscribers[t] = new List<IGlobalSubscriber>();
-            }
+        private static Dictionary<Type, List<IGlobalSubscriber>> _subscribers = new();
 
-            _subscribers[t].Add(subscriber);
-        }
-    }
-    public static void Unsubscribe(IGlobalSubscriber subscriber)
-    {
-        var subscriberTypes = GetSubscribersTypes(subscriber);
-        foreach (Type t in subscriberTypes)
+        private static Dictionary<Type, List<Type>> _cachedSubscriberTypes = new();
+
+        public static void Subscribe(IGlobalSubscriber subscriber)
         {
-            if (_subscribers.ContainsKey(t))
+            var subscriberTypes = GetSubscribersTypes(subscriber);
+            foreach (Type t in subscriberTypes)
             {
-                _subscribers[t].Remove(subscriber);
+                if (!_subscribers.ContainsKey(t))
+                {
+                    _subscribers[t] = new List<IGlobalSubscriber>();
+                }
+
+                _subscribers[t].Add(subscriber);
             }
         }
-    }
-
-    public static void RaiseEvent<TSubscriber>(Action<TSubscriber> action)
-        where TSubscriber : class, IGlobalSubscriber
-    {
-        if (!_subscribers.TryGetValue(typeof(TSubscriber), out var subscribers))
+        public static void Unsubscribe(IGlobalSubscriber subscriber)
         {
-            Debug.LogWarning($"No subscribers of type {typeof(TSubscriber)}");
-            return;
-        }
-
-        foreach (IGlobalSubscriber subscriber in subscribers)
-        {
-            try
+            var subscriberTypes = GetSubscribersTypes(subscriber);
+            foreach (Type t in subscriberTypes)
             {
-                action.Invoke(subscriber as TSubscriber);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);
+                if (_subscribers.ContainsKey(t))
+                {
+                    _subscribers[t].Remove(subscriber);
+                }
             }
         }
-    }
-    private static List<Type> GetSubscribersTypes(IGlobalSubscriber globalSubscriber)
-    {
-        var type = globalSubscriber.GetType();
 
-        if (_cachedSubscriberTypes.ContainsKey(type))
+        public static void RaiseEvent<TSubscriber>(Action<TSubscriber> action)
+            where TSubscriber : class, IGlobalSubscriber
         {
-            return _cachedSubscriberTypes[type];
+            if (!_subscribers.TryGetValue(typeof(TSubscriber), out var subscribers))
+            {
+                Debug.LogWarning($"No subscribers of type {typeof(TSubscriber)}");
+                return;
+            }
+
+            foreach (IGlobalSubscriber subscriber in subscribers)
+            {
+                try
+                {
+                    action.Invoke(subscriber as TSubscriber);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError(e);
+                }
+            }
         }
+        private static List<Type> GetSubscribersTypes(IGlobalSubscriber globalSubscriber)
+        {
+            var type = globalSubscriber.GetType();
 
-        var subscriberTypes = type
-            .GetInterfaces()
-            .Where(it =>
-                    typeof(IGlobalSubscriber).IsAssignableFrom(it) &&
-                    it != typeof(IGlobalSubscriber))
-            .ToList();
+            if (_cachedSubscriberTypes.ContainsKey(type))
+            {
+                return _cachedSubscriberTypes[type];
+            }
 
-        _cachedSubscriberTypes[type] = subscriberTypes;
+            var subscriberTypes = type
+                .GetInterfaces()
+                .Where(it =>
+                        typeof(IGlobalSubscriber).IsAssignableFrom(it) &&
+                        it != typeof(IGlobalSubscriber))
+                .ToList();
 
-        return subscriberTypes;
+            _cachedSubscriberTypes[type] = subscriberTypes;
+
+            return subscriberTypes;
+        }
     }
 }

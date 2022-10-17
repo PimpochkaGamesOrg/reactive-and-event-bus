@@ -1,2 +1,4 @@
-﻿
-public interface IGlobalSubscriber { }
+﻿namespace ReactiveAndEventBus
+{
+    public interface IGlobalSubscriber { }
+}

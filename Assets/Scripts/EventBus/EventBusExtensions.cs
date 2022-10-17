@@ -3,65 +3,67 @@ using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 
-public static class EventBusExtensions
+namespace ReactiveAndEventBus
 {
-    private class DisposableSubscription : IDisposable
+    public static class EventBusExtensions
     {
-        private bool _disposed;
-        private IGlobalSubscriber _subscriber;
-
-        public DisposableSubscription(IGlobalSubscriber subscriber)
+        private class DisposableSubscription : IDisposable
         {
-            _subscriber = subscriber;
-            EventBus.Subscribe(_subscriber);
+            private bool _disposed;
+            private IGlobalSubscriber _subscriber;
+
+            public DisposableSubscription(IGlobalSubscriber subscriber)
+            {
+                _subscriber = subscriber;
+                EventBus.Subscribe(_subscriber);
+            }
+
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+
+                EventBus.Unsubscribe(_subscriber);
+            }
+        }
+        public static void SubscribeToEventBus(this CompositeDisposable compositeDisposable, IGlobalSubscriber subscriber)
+        {
+            compositeDisposable.Add(new DisposableSubscription(subscriber));
         }
 
-        public void Dispose()
+        public static void SubscribeToEventBus(this GameObject gameObject, IGlobalSubscriber subscriber)
         {
-            if (_disposed) return;
-            _disposed = true;
-
-            EventBus.Unsubscribe(_subscriber);
-        }
-    }
-    public static void SubscribeToEventBus(this CompositeDisposable compositeDisposable, IGlobalSubscriber subscriber)
-    {
-        compositeDisposable.Add(new DisposableSubscription(subscriber));
-    }
-
-    public static void SubscribeToEventBus(this GameObject gameObject, IGlobalSubscriber subscriber)
-    {
-        var trigger = gameObject.GetComponent<ObservableDestroyTrigger>();
-        if (trigger == null)
-        {
-            trigger = gameObject.AddComponent<ObservableDestroyTrigger>();
-        }
-        trigger.AddDisposableOnDestroy(new DisposableSubscription(subscriber));
-    }
-
-    public static void SubscribeToEventBusOnEnable(this GameObject gameObject, IGlobalSubscriber subscriber)
-    {
-        if (gameObject.activeSelf)
-        {
-            EventBus.Subscribe(subscriber);
+            var trigger = gameObject.GetComponent<ObservableDestroyTrigger>();
+            if (trigger == null)
+            {
+                trigger = gameObject.AddComponent<ObservableDestroyTrigger>();
+            }
+            trigger.AddDisposableOnDestroy(new DisposableSubscription(subscriber));
         }
 
-        var trigger = gameObject.GetComponent<ObservableEnableTrigger>();
-        if (trigger == null)
+        public static void SubscribeToEventBusOnEnable(this GameObject gameObject, IGlobalSubscriber subscriber)
         {
-            trigger = gameObject.AddComponent<ObservableEnableTrigger>();
+            if (gameObject.activeSelf)
+            {
+                EventBus.Subscribe(subscriber);
+            }
+
+            var trigger = gameObject.GetComponent<ObservableEnableTrigger>();
+            if (trigger == null)
+            {
+                trigger = gameObject.AddComponent<ObservableEnableTrigger>();
+            }
+
+
+            trigger.OnEnableAsObservable().Subscribe(_ =>
+            {
+                EventBus.Subscribe(subscriber);
+            }).AddTo(gameObject);
+
+            trigger.OnDisableAsObservable().Subscribe(_ =>
+            {
+                EventBus.Unsubscribe(subscriber);
+            }).AddTo(gameObject);
         }
-
-
-        trigger.OnEnableAsObservable().Subscribe(_ =>
-        {
-            EventBus.Subscribe(subscriber);
-        }).AddTo(gameObject);
-
-        trigger.OnDisableAsObservable().Subscribe(_ =>
-        {
-            EventBus.Unsubscribe(subscriber);
-        }).AddTo(gameObject);
     }
 }
-

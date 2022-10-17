@@ -1,12 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using UniRx;
 
-public static class ReactiveExtensions
+namespace ReactiveAndEventBus
 {
-    public static IDisposable SubscribeAndInit<T>(this IReactiveProperty<T> property, Action<T> onNext)
+    public static class ReactiveExtensions
     {
-        onNext(property.Value);
-        return property.Subscribe(onNext);
+        public static IDisposable SubscribeAndInit<T>(this IReactiveProperty<T> property, Action<T> onNext)
+        {
+            onNext(property.Value);
+            return property.Subscribe(onNext);
+        }
     }
 }
